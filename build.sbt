@@ -64,15 +64,3 @@ pomExtra := {
 licenses := Seq("BSD-style" -> url("http://www.opensource.org/licenses/bsd-license.php"))
 
 homepage := Some(url("https://github.com/pfn/android-conversions"))
-
-libraryDependencies ++= (CrossVersion.partialVersion(scalaVersion.value) match {
-  case Some((2, 10)) ⇒
-    Seq("org.scalamacros" %% "quasiquotes" % "2.0.1")
-  case _ ⇒
-    Seq()
-})
-
-libraryDependencies ++= Seq(
-  "org.scala-lang" % "scala-reflect" % scalaVersion.value,
-  compilerPlugin("org.scalamacros" % "paradise" % "2.0.1" cross CrossVersion.full)
-)
