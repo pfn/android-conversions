@@ -230,7 +230,7 @@ object ConversionsGenerator {
           """.stripMargin
       } else {
          s"""
-           |    def ${decapitalize(name2)}${conversionWildcards(m.intf)}(fn: ${byNameSignature(m.intf)}) =
+           |    def ${decapitalize(name2)}0${conversionWildcards(m.intf)}(fn: ${byNameSignature(m.intf)}) =
            |      base.${m.method}(${conversionName(m.intf, true)}(() => fn))
            |    def ${decapitalize(name2)}${conversionWildcards(m.intf)}(fn: ${fnNSignature(m.intf)}) =
            |      base.${m.method}(${conversionName(m.intf, false)}(fn))

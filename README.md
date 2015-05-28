@@ -15,11 +15,15 @@ parameter.
 The extension functions are named with any prefixed `set` and suffixed
 `Listener` names removed. Additionally, the remainder of the name is
 decapitalized. For example `setOnClickListener` becomes `onClick` and
-`setInterpolator` becomes `interpolator`
+`setInterpolator` becomes `interpolator`.
+
+When there are are callbacks with arguments that can be ignored, one can
+invoke the `0` variant of the extension function, such as `onClick0` to pass
+a `=> A` by-name parameter
 
 ## Use it from SBT
 
-`libraryDependencies += "com.hanhuy.android" %% "scala-conversions" % "1.0"`
+`libraryDependencies += "com.hanhuy.android" %% "scala-conversions" % "1.1"`
 
 ## Use it from code
 

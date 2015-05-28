@@ -24,7 +24,7 @@ name := "scala-conversions"
 
 organization := "com.hanhuy.android"
 
-version := "1.0"
+version := "1.1"
 
 platformTarget in Android := "android-22"
 
