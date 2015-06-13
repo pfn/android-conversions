@@ -33,7 +33,7 @@ a `=> A` by-name parameter
 
 or
 
-`findViewById(R.id.something).onClick { Toast.makeText(...).show() }`
+`findViewById(R.id.something).onClick0 { Toast.makeText(...).show() }`
 
 ## generated code
 
