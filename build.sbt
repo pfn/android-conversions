@@ -1,5 +1,6 @@
 val doGeneration = taskKey[Seq[File]]("android-conversions-generator")
 
+TaskKey[Unit]("publishSigned") in file(".") := {}
 
 val settings = android.Plugin.androidBuild ++ Seq(
   lintEnabled in Android := false,
@@ -17,7 +18,7 @@ val settings = android.Plugin.androidBuild ++ Seq(
   crossPaths := true,
   crossScalaVersions += "2.11.2",
   organization := "com.hanhuy.android",
-  version := "1.1",
+  version := "1.2",
   javacOptions ++= "-target" :: "1.7" :: "-source" :: "1.7" :: Nil,
   // sonatype publishing options follow
   publishMavenStyle := true,
@@ -46,21 +47,13 @@ val settings = android.Plugin.androidBuild ++ Seq(
   homepage := Some(url("https://github.com/pfn/android-conversions"))
 )
 
-val framework = project.in(file("framework")).settings(settings)
+val framework = project.in(file("framework")).settings(settings).settings(name := "scala-conversions")
 
-val supportv4 = project.in(file("support-v4")).settings(settings)
+val supportv4 = project.in(file("support-v4")).settings(settings).settings(name := "scala-conversions-v4")
 
-val appcompatv7 = project.in(file("appcompat-v7")).settings(settings)
+val appcompatv7 = project.in(file("appcompat-v7")).settings(settings).settings(name := "scala-conversions-v7")
 
-val design = project.in(file("design")).settings(settings)
-
-name in framework := "scala-conversions"
-
-name in supportv4 := "scala-conversions-v4"
-
-name in appcompatv7 := "scala-conversions-v7"
-
-name in design := "scala-conversions-design"
+val design = project.in(file("design")).settings(settings).settings(name := "scala-conversions-design")
 
 doGeneration in framework := {
   val bcp = (bootClasspath in (framework,Android)).value
