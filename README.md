@@ -24,15 +24,19 @@ a `=> A` by-name parameter
 ## Use it from SBT
 
 Base android framework extensions:
+
 `libraryDependencies += "com.hanhuy.android" %% "scala-conversions" % "1.2"`
 
 Extensions for `support-v4`:
+
 `libraryDependencies += "com.hanhuy.android" %% "scala-conversions-v4" % "1.2"`
 
 Extensions for `appcompat-v7`:
+
 `libraryDependencies += "com.hanhuy.android" %% "scala-conversions-v7" % "1.2"`
 
 Extensions for `design`:
+
 `libraryDependencies += "com.hanhuy.android" %% "scala-conversions-design" % "1.2"`
 
 ## Use it from code
@@ -44,6 +48,30 @@ Extensions for `design`:
 or
 
 `findViewById(R.id.something).onClick0 { Toast.makeText(...).show() }`
+
+`support-v4`:
+
+```
+import com.hanhuy.android.v4.extensions._
+import com.hanhuy.android.v4.conversions._
+```
+
+`appcompat-v7`:
+
+```
+import com.hanhuy.android.v7.extensions._
+import com.hanhuy.android.v7.conversions._
+```
+
+`design`:
+
+```
+import com.hanhuy.android.design.extensions._
+import com.hanhuy.android.design.conversions._
+```
+
+From `1.2` onward, generated sources are published to sonatype and browsable
+from IntelliJ.
 
 ## generated code
 
