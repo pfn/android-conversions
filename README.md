@@ -23,7 +23,17 @@ a `=> A` by-name parameter
 
 ## Use it from SBT
 
-`libraryDependencies += "com.hanhuy.android" %% "scala-conversions" % "1.1"`
+Base android framework extensions:
+`libraryDependencies += "com.hanhuy.android" %% "scala-conversions" % "1.2"`
+
+Extensions for `support-v4`:
+`libraryDependencies += "com.hanhuy.android" %% "scala-conversions-v4" % "1.2"`
+
+Extensions for `appcompat-v7`:
+`libraryDependencies += "com.hanhuy.android" %% "scala-conversions-v7" % "1.2"`
+
+Extensions for `design`:
+`libraryDependencies += "com.hanhuy.android" %% "scala-conversions-design" % "1.2"`
 
 ## Use it from code
 
