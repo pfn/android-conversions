@@ -37,15 +37,15 @@ object ConversionsGenerator {
   val ANNOTATION = Opcodes.ACC_ANNOTATION
   val PUBLIC_ABSTRACT = Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT
 
-  def apply(srcManaged: File, androidJar: File): List[File] = {
+  def apply(srcManaged: File, classpath: Seq[Attributed[File]], androidJar: File, pkg: String = "com.hanhuy.android"): List[File] = {
     srcManaged.mkdirs()
     val conversions = srcManaged / "conversions.scala"
     val extensions = srcManaged / "extensions.scala"
-    val androidClasses = ClasspathUtilities.toLoader(androidJar)
+    val androidClasses = ClasspathUtilities.toLoader(classpath map (_.data))
     val interfaces = collectInterfaces(androidJar, androidClasses)
     val usages = collectUsages(androidJar, interfaces)
-    writeConversions(interfaces, conversions)
-    writeExtensions(usages, extensions)
+    writeConversions(interfaces, pkg, conversions)
+    writeExtensions(usages, pkg, extensions)
     List(conversions, extensions)
   }
 
@@ -93,6 +93,8 @@ object ConversionsGenerator {
     if (classNode.name.startsWith("android") &&
       !classNode.name.endsWith("Service") &&
       !classNode.name.endsWith("NumberKeyListener") && // for some reason, can't detect interface method
+      !classNode.name.contains("v7/app/AlertController") &&
+      !classNode.name.contains("/internal/") &&
       !classNode.name.endsWith("AsyncTask") &&
       hasNoCtorOrNoArg(classNode) &&
       isAbstract(classNode.access)) {
@@ -111,13 +113,19 @@ object ConversionsGenerator {
           val method = candidateMethods.head
           val params = Type.getArgumentTypes(method.desc)
           val params1 = params map (p => fixupArgType(p.getClassName)) map (ParamType.apply(_, false, List.empty)) toList
-          val (sig, ret, ph) = if (method.signature != null) {
-            val sr = SigReader(method.signature)
-            (sr.params, sr.ret, sr.placeholders.toList)
-          } else (params1, ParamType(fixupArgType(Type.getReturnType(method.desc).getClassName)), List.empty)
 
-          val intf = Interface(classNode.name.replace('/', '.'), method.name, sig, ret, ph)
-          Option(intf)
+          if (params1 exists (p => p.tpe.contains("/internal/") || p.tpeArgs.exists(_ contains "/internal/"))) {
+            None
+
+          } else {
+            val (sig, ret, ph) = if (method.signature != null) {
+              val sr = SigReader(method.signature)
+              (sr.params, sr.ret, sr.placeholders.toList)
+            } else (params1, ParamType(fixupArgType(Type.getReturnType(method.desc).getClassName)), List.empty)
+
+            val intf = Interface(classNode.name.replace('/', '.'), method.name, sig, ret, ph)
+            Option(intf)
+          }
         } else None
       } else
         None
@@ -135,7 +143,7 @@ object ConversionsGenerator {
     reader.accept(classNode, 0)
 
     // don't know how to detect for non-static inner classes...  :(
-    if (classNode.name.startsWith("android") && !classNode.name.endsWith("$TabSpec")) {
+    if (isPublic(classNode.access) && classNode.name.startsWith("android") && !classNode.name.endsWith("$TabSpec")) {
       val methods = classNode.methods.asScala collect { case m: MethodNode => m } filter { case method =>
         val params = Type.getArgumentTypes(method.desc)
         method.name.startsWith("set") && params.length == 1 && (params map (_.getClassName) exists ifacenames)
@@ -268,10 +276,9 @@ object ConversionsGenerator {
     if (iface.args.isEmpty) s1 else s1 + s2
   }
 
-  def
-  writeConversions(intfs: List[Interface], output: File): Unit = {
+  def writeConversions(intfs: List[Interface], pkg: String, output: File): Unit = {
     val fout = new PrintWriter(new OutputStreamWriter(new FileOutputStream(output), "utf-8"))
-    fout.println("package com.hanhuy.android")
+    fout.println(s"package $pkg")
     fout.println("import language.implicitConversions")
     fout.println("package object conversions {")
     intfs foreach { iface =>
@@ -280,9 +287,9 @@ object ConversionsGenerator {
     fout.println("}")
     fout.close()
   }
-  def writeExtensions(usages: List[Usage], output: File): Unit = {
+  def writeExtensions(usages: List[Usage], pkg: String, output: File): Unit = {
     val fout = new PrintWriter(new OutputStreamWriter(new FileOutputStream(output), "utf-8"))
-    fout.println("package com.hanhuy.android")
+    fout.println(s"package $pkg")
     fout.println("import conversions._")
     fout.println("package object extensions {")
     usages foreach { usage =>
