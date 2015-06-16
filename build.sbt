@@ -2,6 +2,8 @@ val doGeneration = taskKey[Seq[File]]("android-conversions-generator")
 
 TaskKey[Unit]("publishSigned") in file(".") := {}
 
+crossScalaVersions in Global += "2.11.2"
+
 val settings = android.Plugin.androidBuild ++ Seq(
   lintEnabled in Android := false,
   scalacOptions in Compile ++= "-feature" :: "-deprecation" :: Nil,
@@ -16,7 +18,6 @@ val settings = android.Plugin.androidBuild ++ Seq(
   publishArtifact in (Compile,packageSrc) := true,
   sourceGenerators in Compile <+= doGeneration,
   crossPaths := true,
-  crossScalaVersions += "2.11.2",
   organization := "com.hanhuy.android",
   version := "1.2",
   javacOptions ++= "-target" :: "1.7" :: "-source" :: "1.7" :: Nil,
