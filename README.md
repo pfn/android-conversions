@@ -21,23 +21,30 @@ When there are are callbacks with arguments that can be ignored, one can
 invoke the `0` variant of the extension function, such as `onClick0` to pass
 a `=> A` by-name parameter
 
+`1.3+`: If there is a naming collision in an existing method name, such as
+with `TextView.onEditorAction`, the `asScala` extension function will wrap
+the object with the extension wrapper, and it can be called without
+encountering the naming conflict. e.g.
+`textview.asScala.onEditorAction((a,b,c) => true)`; this has no allocation
+cost.
+
 ## Use it from SBT
 
 Base android framework extensions:
 
-`libraryDependencies += "com.hanhuy.android" %% "scala-conversions" % "1.2"`
+`libraryDependencies += "com.hanhuy.android" %% "scala-conversions" % "1.3"`
 
 Extensions for `support-v4`:
 
-`libraryDependencies += "com.hanhuy.android" %% "scala-conversions-v4" % "1.2"`
+`libraryDependencies += "com.hanhuy.android" %% "scala-conversions-v4" % "1.3"`
 
 Extensions for `appcompat-v7`:
 
-`libraryDependencies += "com.hanhuy.android" %% "scala-conversions-v7" % "1.2"`
+`libraryDependencies += "com.hanhuy.android" %% "scala-conversions-appcompat" % "1.3"`
 
 Extensions for `design`:
 
-`libraryDependencies += "com.hanhuy.android" %% "scala-conversions-design" % "1.2"`
+`libraryDependencies += "com.hanhuy.android" %% "scala-conversions-design" % "1.3"`
 
 ## Use it from code
 
@@ -59,8 +66,8 @@ import com.hanhuy.android.v4.conversions._
 `appcompat-v7`:
 
 ```
-import com.hanhuy.android.v7.extensions._
-import com.hanhuy.android.v7.conversions._
+import com.hanhuy.android.appcompat.extensions._
+import com.hanhuy.android.appcompat.conversions._
 ```
 
 `design`:
