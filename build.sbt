@@ -22,7 +22,7 @@ val settings = android.Plugin.androidBuild ++ Seq(
   sourceGenerators in Compile <+= doGeneration,
   crossPaths := true,
   organization := "com.hanhuy.android",
-  version := "1.2",
+  version := "1.3",
   javacOptions ++= "-target" :: "1.7" :: "-source" :: "1.7" :: Nil,
   // sonatype publishing options follow
   publishMavenStyle := true,
@@ -55,7 +55,7 @@ val framework = project.in(file("framework")).settings(settings).settings(name :
 
 val supportv4 = project.in(file("support-v4")).settings(settings).settings(name := "scala-conversions-v4")
 
-val appcompatv7 = project.in(file("appcompat-v7")).settings(settings).settings(name := "scala-conversions-v7")
+val appcompatv7 = project.in(file("appcompat-v7")).settings(settings).settings(name := "scala-conversions-appcompat")
 
 val design = project.in(file("design")).settings(settings).settings(name := "scala-conversions-design")
 
@@ -78,7 +78,7 @@ doGeneration in appcompatv7 := {
   val jar = fcp map (_.data) find (_.getName contains "appcompat-v7")
   ConversionsGenerator(
     (sourceManaged in (appcompatv7,Compile)).value,
-    (bootClasspath in (appcompatv7,Android)).value ++ fcp, jar.get, "com.hanhuy.android.v7")
+    (bootClasspath in (appcompatv7,Android)).value ++ fcp, jar.get, "com.hanhuy.android.appcompat")
 }
 
 doGeneration in design := {

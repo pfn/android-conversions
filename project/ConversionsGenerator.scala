@@ -248,6 +248,7 @@ object ConversionsGenerator {
     s"""
        |  implicit class ExtensionOf$clsname(val base: $cls$wildcards) extends AnyVal {
        |    $names
+       |    def asScala = this
        |  }
     """.stripMargin
   }
