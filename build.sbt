@@ -1,8 +1,8 @@
 val doGeneration = taskKey[Seq[File]]("android-conversions-generator")
 
-TaskKey[Unit]("publishSigned") in file(".") := {}
+TaskKey[Unit]("publishSigned") := {}
 
-publishLocal in file(".") := {}
+publishLocal := {}
 
 crossScalaVersions in Global += "2.11.2"
 
@@ -22,7 +22,7 @@ val settings = android.Plugin.androidBuild ++ Seq(
   sourceGenerators in Compile <+= doGeneration,
   crossPaths := true,
   organization := "com.hanhuy.android",
-  version := "1.3",
+  version := "1.4",
   javacOptions ++= "-target" :: "1.7" :: "-source" :: "1.7" :: Nil,
   // sonatype publishing options follow
   publishMavenStyle := true,

@@ -34,19 +34,19 @@ cost.
 
 Base android framework extensions:
 
-`libraryDependencies += "com.hanhuy.android" %% "scala-conversions" % "1.3"`
+`libraryDependencies += "com.hanhuy.android" %% "scala-conversions" % "1.4"`
 
 Extensions for `support-v4`:
 
-`libraryDependencies += "com.hanhuy.android" %% "scala-conversions-v4" % "1.3"`
+`libraryDependencies += "com.hanhuy.android" %% "scala-conversions-v4" % "1.4"`
 
 Extensions for `appcompat-v7`:
 
-`libraryDependencies += "com.hanhuy.android" %% "scala-conversions-appcompat" % "1.3"`
+`libraryDependencies += "com.hanhuy.android" %% "scala-conversions-appcompat" % "1.4"`
 
 Extensions for `design`:
 
-`libraryDependencies += "com.hanhuy.android" %% "scala-conversions-design" % "1.3"`
+`libraryDependencies += "com.hanhuy.android" %% "scala-conversions-design" % "1.4"`
 
 ## Use it from code
 
