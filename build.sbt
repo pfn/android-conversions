@@ -67,7 +67,7 @@ doGeneration in framework := {
 
 doGeneration in supportv4 := {
   val fcp = (dependencyClasspath in (supportv4,Compile)).value
-  val jar = fcp map (_.data) find (_.getName contains "support-v4")
+  val jar = fcp map (_.data) find (_.getName contains "support-v4-2")
   ConversionsGenerator(
     (sourceManaged in (supportv4,Compile)).value,
     (bootClasspath in (supportv4,Android)).value ++ fcp, jar.get, "com.hanhuy.android.v4")
