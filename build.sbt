@@ -1,10 +1,11 @@
+val supportSdkVersion = "23.0.1"
 val doGeneration = taskKey[Seq[File]]("android-conversions-generator")
 
 TaskKey[Unit]("publishSigned") := {}
 
 publishLocal := {}
 
-crossScalaVersions in Global += "2.11.2"
+crossScalaVersions in Global += "2.11.7"
 
 val settings = android.Plugin.androidBuild ++ Seq(
   lintEnabled in Android := false,
@@ -12,9 +13,10 @@ val settings = android.Plugin.androidBuild ++ Seq(
   manifest in Android := <manifest package="com.hanhuy.android.conversions">
     <application/>
   </manifest>,
+  autoScalaLibrary := true,
   buildConfigGenerator in Android := Nil,
   rGenerator in Android := Nil,
-  platformTarget in Android := "android-22",
+  platformTarget in Android := "android-23",
   debugIncludesTests in Android := false,
   publishArtifact in (Compile,packageBin) := true,
   publishArtifact in (Compile,packageSrc) := true,
@@ -22,7 +24,7 @@ val settings = android.Plugin.androidBuild ++ Seq(
   sourceGenerators in Compile <+= doGeneration,
   crossPaths := true,
   organization := "com.hanhuy.android",
-  version := "1.4",
+  version := "1.5",
   javacOptions ++= "-target" :: "1.7" :: "-source" :: "1.7" :: Nil,
   // sonatype publishing options follow
   publishMavenStyle := true,
@@ -51,18 +53,17 @@ val settings = android.Plugin.androidBuild ++ Seq(
   homepage := Some(url("https://github.com/pfn/android-conversions"))
 )
 
-val framework = project.in(file("framework")).settings(settings).settings(name := "scala-conversions")
+val framework = project.settings(settings).settings(name := "scala-conversions")
 
 val supportv4 = project.in(file("support-v4")).settings(settings).settings(name := "scala-conversions-v4")
 
 val appcompatv7 = project.in(file("appcompat-v7")).settings(settings).settings(name := "scala-conversions-appcompat")
 
-val design = project.in(file("design")).settings(settings).settings(name := "scala-conversions-design")
+val design = project.settings(settings).settings(name := "scala-conversions-design")
 
 doGeneration in framework := {
   val bcp = (bootClasspath in (framework,Android)).value
-  ConversionsGenerator(
-    (sourceManaged in (framework,Compile)).value, bcp, bcp.head.data)
+  ConversionsGenerator((sourceManaged in (framework,Compile)).value, bcp, bcp.head.data, "com.hanhuy.android")
 }
 
 doGeneration in supportv4 := {
@@ -89,8 +90,8 @@ doGeneration in design := {
     (bootClasspath in (design,Android)).value ++ fcp, jar.get, "com.hanhuy.android.design")
 }
 
-libraryDependencies in design += "com.android.support" % "design" % "22.2.0"
+libraryDependencies in design += "com.android.support" % "design" % supportSdkVersion % "provided"
 
-libraryDependencies in appcompatv7 += "com.android.support" % "appcompat-v7" % "22.2.0"
+libraryDependencies in appcompatv7 += "com.android.support" % "appcompat-v7" % supportSdkVersion % "provided"
 
-libraryDependencies in supportv4 += "com.android.support" % "support-v4" % "22.2.0"
+libraryDependencies in supportv4 += "com.android.support" % "support-v4" % supportSdkVersion % "provided"
