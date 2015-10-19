@@ -230,17 +230,16 @@ object ConversionsGenerator {
         name.dropRight("Listener".length)
       } else name
 
-      if (name2 == "interpolator") println(usage)
       if (m.intf.args.isEmpty) {
         s"""
-           |    def ${decapitalize(name2)}${conversionWildcards(m.intf)}(fn: ${byNameSignature(m.intf)}) =
+           |    @inline def ${decapitalize(name2)}${conversionWildcards(m.intf)}(fn: ${byNameSignature(m.intf)}) =
            |      base.${m.method}(${conversionName(m.intf, true)}(() => fn))
           """.stripMargin
       } else {
          s"""
-           |    def ${decapitalize(name2)}0${conversionWildcards(m.intf)}(fn: ${byNameSignature(m.intf)}) =
+           |    @inline def ${decapitalize(name2)}0${conversionWildcards(m.intf)}(fn: ${byNameSignature(m.intf)}) =
            |      base.${m.method}(${conversionName(m.intf, true)}(() => fn))
-           |    def ${decapitalize(name2)}${conversionWildcards(m.intf)}(fn: ${fnNSignature(m.intf)}) =
+           |    @inline def ${decapitalize(name2)}${conversionWildcards(m.intf)}(fn: ${fnNSignature(m.intf)}) =
            |      base.${m.method}(${conversionName(m.intf, false)}(fn))
           """.stripMargin
       }
@@ -263,14 +262,14 @@ object ConversionsGenerator {
     val args = argNames map { case (t, n) => s"$n: $t" } mkString ", "
 
     val s1 = s"""
-      |  implicit def ${conversionName(iface, false)}${conversionWildcards(iface)}(fn: ${fnNSignature(iface)}): $cls$wildcards = new $cls$wildcards {
+      |  @inline implicit def ${conversionName(iface, false)}${conversionWildcards(iface)}(fn: ${fnNSignature(iface)}): $cls$wildcards = new $cls$wildcards {
       |    override def ${iface.method}($args) = fn($fargs)
       |  }
       |
     """.stripMargin
     val s2 =
       s"""
-      |  implicit def ${conversionName(iface, true)}${conversionWildcards(iface)}(fn: ${fn0Signature(iface)}): $cls$wildcards = new $cls$wildcards {
+      |  @inline implicit def ${conversionName(iface, true)}${conversionWildcards(iface)}(fn: ${fn0Signature(iface)}): $cls$wildcards = new $cls$wildcards {
       |    override def ${iface.method}($args) = fn()
       |  }
     """.stripMargin
