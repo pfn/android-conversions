@@ -5,6 +5,8 @@ TaskKey[Unit]("publishSigned") := {}
 
 publishLocal := {}
 
+sonatypeProfileName := "com.hanhuy"
+
 crossScalaVersions in Global += "2.11.7"
 
 val settings = android.Plugin.androidBuild ++ Seq(
@@ -24,7 +26,7 @@ val settings = android.Plugin.androidBuild ++ Seq(
   sourceGenerators in Compile <+= doGeneration,
   crossPaths := true,
   organization := "com.hanhuy.android",
-  version := "1.6-SNAPSHOT",
+  version := "1.6",
   javacOptions ++= "-target" :: "1.7" :: "-source" :: "1.7" :: Nil,
   // sonatype publishing options follow
   publishMavenStyle := true,
