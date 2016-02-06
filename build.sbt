@@ -17,7 +17,7 @@ val settings = android.Plugin.androidBuildJar ++ Seq(
   sourceGenerators in Compile <+= doGeneration,
   crossPaths := true,
   organization := "com.hanhuy.android",
-  version := supportSdkVersion + "-SNAPSHOT",
+  version := supportSdkVersion,
   javacOptions ++= "-target" :: "1.7" :: "-source" :: "1.7" :: Nil,
   // sonatype publishing options follow
   publishMavenStyle := true,
