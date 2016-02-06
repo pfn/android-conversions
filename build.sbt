@@ -1,4 +1,4 @@
-val supportSdkVersion = "23.0.1"
+val supportSdkVersion = "23.1.1"
 val doGeneration = taskKey[Seq[File]]("android-conversions-generator")
 
 TaskKey[Unit]("publishSigned") := {}
@@ -9,24 +9,15 @@ sonatypeProfileName := "com.hanhuy"
 
 crossScalaVersions in Global += "2.11.7"
 
-val settings = android.Plugin.androidBuild ++ Seq(
-  lintEnabled in Android := false,
+val settings = android.Plugin.androidBuildJar ++ Seq(
+  lintEnabled := false,
   scalacOptions in Compile ++= "-feature" :: "-deprecation" :: Nil,
-  manifest in Android := <manifest package="com.hanhuy.android.conversions">
-    <application/>
-  </manifest>,
   autoScalaLibrary := true,
-  buildConfigGenerator in Android := Nil,
-  rGenerator in Android := Nil,
-  platformTarget in Android := "android-23",
-  debugIncludesTests in Android := false,
-  publishArtifact in (Compile,packageBin) := true,
-  publishArtifact in (Compile,packageSrc) := true,
-  mappings in (Compile,packageSrc) := (managedSources in Compile).value map (s => (s,s.getName)),
+  platformTarget := "android-23",
   sourceGenerators in Compile <+= doGeneration,
   crossPaths := true,
   organization := "com.hanhuy.android",
-  version := "1.6",
+  version := supportSdkVersion + "-SNAPSHOT",
   javacOptions ++= "-target" :: "1.7" :: "-source" :: "1.7" :: Nil,
   // sonatype publishing options follow
   publishMavenStyle := true,
@@ -57,39 +48,48 @@ val settings = android.Plugin.androidBuild ++ Seq(
 
 val framework = project.settings(settings).settings(name := "scala-conversions")
 
-val supportv4 = project.in(file("support-v4")).settings(settings).settings(name := "scala-conversions-v4")
+val supportv4 = project.in(file("support-v4")).settings(settings).settings(name := "scala-conversions-v4").dependsOn(framework)
 
-val appcompatv7 = project.in(file("appcompat-v7")).settings(settings).settings(name := "scala-conversions-appcompat")
+val appcompatv7 = project.in(file("appcompat-v7")).settings(settings).settings(name := "scala-conversions-appcompat").dependsOn(supportv4)
 
-val design = project.settings(settings).settings(name := "scala-conversions-design")
+val design = project.settings(settings).settings(name := "scala-conversions-design").dependsOn(appcompatv7)
 
 doGeneration in framework := {
-  val bcp = (bootClasspath in (framework,Android)).value
+  val bcp = (bootClasspath in framework).value
   ConversionsGenerator((sourceManaged in (framework,Compile)).value, bcp, bcp.head.data, "com.hanhuy.android")
 }
 
 doGeneration in supportv4 := {
   val fcp = (dependencyClasspath in (supportv4,Compile)).value
+  val bcp = (bootClasspath in supportv4).value
   val jar = fcp map (_.data) find (_.getName contains "support-v4-2")
   ConversionsGenerator(
     (sourceManaged in (supportv4,Compile)).value,
-    (bootClasspath in (supportv4,Android)).value ++ fcp, jar.get, "com.hanhuy.android.v4")
+    bcp ++ fcp, jar.get, "com.hanhuy.android.v4",
+    bcp.head.data :: Nil,
+    "com.hanhuy.android" :: Nil)
 }
 
 doGeneration in appcompatv7 := {
+  val bcp = (bootClasspath in appcompatv7).value
   val fcp = (dependencyClasspath in (appcompatv7,Compile)).value
   val jar = fcp map (_.data) find (_.getName contains "appcompat-v7")
   ConversionsGenerator(
     (sourceManaged in (appcompatv7,Compile)).value,
-    (bootClasspath in (appcompatv7,Android)).value ++ fcp, jar.get, "com.hanhuy.android.appcompat")
+    bcp ++ fcp, jar.get, "com.hanhuy.android.appcompat",
+    bcp.head.data :: Nil,
+    "com.hanhuy.android" :: Nil)
 }
 
 doGeneration in design := {
+  val bcp = (bootClasspath in design).value
   val fcp = (dependencyClasspath in (design,Compile)).value
   val jar = fcp map (_.data) find (_.getName contains "design")
   ConversionsGenerator(
     (sourceManaged in (design,Compile)).value,
-    (bootClasspath in (design,Android)).value ++ fcp, jar.get, "com.hanhuy.android.design")
+    bcp ++ fcp, jar.get, "com.hanhuy.android.design",
+    bcp.head.data :: Nil,
+    "com.hanhuy.android" :: Nil)
 }
 
 libraryDependencies in design += "com.android.support" % "design" % supportSdkVersion % "provided"

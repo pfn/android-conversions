@@ -4,8 +4,9 @@ import java.util.jar.{JarEntry, JarFile}
 
 import org.objectweb.asm.signature.{SignatureVisitor, SignatureReader}
 import org.objectweb.asm.{Type, Opcodes, ClassReader}
-import org.objectweb.asm.tree.{MethodNode, ClassNode}
+import org.objectweb.asm.tree.{FieldNode, MethodNode, ClassNode}
 import sbt.File
+import sbt.FileInfo.exists
 import sbt.classpath.ClasspathUtilities
 
 import collection.JavaConverters._
@@ -37,23 +38,58 @@ object ConversionsGenerator {
   val ANNOTATION = Opcodes.ACC_ANNOTATION
   val PUBLIC_ABSTRACT = Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT
 
-  def apply(srcManaged: File, classpath: Seq[Attributed[File]], androidJar: File, pkg: String = "com.hanhuy.android"): List[File] = {
+  def apply(srcManaged: File, classpath: Seq[Attributed[File]], androidJar: File,
+            pkg: String = "com.hanhuy.android",
+            deps: List[File] = Nil,
+            deppkgs: List[String] = Nil): List[File] = {
     srcManaged.mkdirs()
     val conversions = srcManaged / "conversions.scala"
     val extensions = srcManaged / "extensions.scala"
     val androidClasses = ClasspathUtilities.toLoader(classpath map (_.data))
-    val interfaces = collectInterfaces(androidJar, androidClasses)
-    val usages = collectUsages(androidJar, interfaces)
+    val publics = collectPublics(androidJar, androidClasses)
+    val nesteds = collectNesteds(androidJar, androidClasses)
+    val allintfs = deps.foldLeft(List.empty[Interface]) { (ac, x) =>
+        ac ++ collectInterfaces(x, androidClasses, collectPublics(x, androidClasses), collectNesteds(x, androidClasses))
+    }
+    val interfaces = collectInterfaces(androidJar, androidClasses, publics, nesteds)
+    val usages = collectUsages(androidJar, interfaces ++ allintfs)
     writeConversions(interfaces, pkg, conversions)
-    writeExtensions(usages, pkg, extensions)
+    writeExtensions(usages, pkg, extensions, deppkgs)
     List(conversions, extensions)
   }
 
-  def collectInterfaces(androidJar: File, android: ClassLoader): List[Interface] = {
+  def collectPublics(androidJar: File, android: ClassLoader): Set[String] = {
     val input = new JarFile(androidJar)
     val r = input.entries.asScala.toList collect { case entry if entry.getName.endsWith(".class") =>
       val in = input.getInputStream(entry)
-      val e = processForInterfaces(entry, in, android)
+      val reader = new ClassReader(in)
+      val classNode = new ClassNode(Opcodes.ASM5)
+      reader.accept(classNode, 0)
+      in.close()
+      if (isPublic(classNode.access)) Some(classNode.name) else None
+    } collect { case Some(x) => x }
+    input.close()
+    r.toSet
+  }
+  def collectNesteds(androidJar: File, android: ClassLoader): Set[String] = {
+    val input = new JarFile(androidJar)
+    val r = input.entries.asScala.toList collect { case entry if entry.getName.endsWith(".class") =>
+      val in = input.getInputStream(entry)
+      val reader = new ClassReader(in)
+      val classNode = new ClassNode(Opcodes.ASM5)
+      reader.accept(classNode, 0)
+      in.close()
+      if (isNestedClass(classNode)) Some(classNode.name.replace('/','.').replace('$','.')) else None
+    } collect { case Some(x) => x }
+    input.close()
+    r.toSet
+  }
+
+  def collectInterfaces(androidJar: File, android: ClassLoader, publics: Set[String], nesteds: Set[String]): List[Interface] = {
+    val input = new JarFile(androidJar)
+    val r = input.entries.asScala.toList collect { case entry if entry.getName.endsWith(".class") =>
+      val in = input.getInputStream(entry)
+      val e = processForInterfaces(entry, in, android, publics, nesteds)
       in.close()
       e
     } collect { case Some(x) => x }
@@ -85,17 +121,16 @@ object ConversionsGenerator {
     val tary = if (p.isArray) s"Array[$t]" else t
     if (p.tpeArgs.nonEmpty) s"$tary[${p.tpeArgs map fixupArgType mkString ","}]" else tary
   }
-  def processForInterfaces(entry: JarEntry, in: InputStream, android: ClassLoader): Option[Interface] = {
+  def processForInterfaces(entry: JarEntry, in: InputStream, android: ClassLoader, publics: Set[String], nesteds: Set[String]): Option[Interface] = {
     val reader = new ClassReader(in)
     val classNode = new ClassNode(Opcodes.ASM5)
     reader.accept(classNode, 0)
 
     if (classNode.name.startsWith("android") &&
-      !classNode.name.endsWith("Service") &&
-      !classNode.name.endsWith("NumberKeyListener") && // for some reason, can't detect interface method
-      !classNode.name.contains("v7/app/AlertController") &&
-      !classNode.name.contains("/internal/") &&
-      !classNode.name.endsWith("AsyncTask") &&
+      !isNestedClass(classNode) &&
+      !classNode.name.endsWith("NumberKeyListener") && // public getInputType + protected getAcceptedChars
+      !classNode.name.endsWith("AsyncTask") && // multiple type params, not handled
+      (classNode.name.indexOf('$') == -1 || publics(classNode.name.substring(0, classNode.name.indexOf('$')))) &&
       hasNoCtorOrNoArg(classNode) &&
       isAbstract(classNode.access)) {
       val candidateMethods = classNode.methods.asScala.collect {
@@ -124,7 +159,10 @@ object ConversionsGenerator {
             } else (params1, ParamType(fixupArgType(Type.getReturnType(method.desc).getClassName)), List.empty)
 
             val intf = Interface(classNode.name.replace('/', '.'), method.name, sig, ret, ph)
-            Option(intf)
+            if (nesteds(ret.tpe))
+              None
+            else
+              Option(intf)
           }
         } else None
       } else
@@ -135,6 +173,9 @@ object ConversionsGenerator {
 
   def isAbstract(ac: Int) = (ac & ANNOTATION) == 0 && (ac & PUBLIC_ABSTRACT) == PUBLIC_ABSTRACT
   def isPublic(ac: Int) = (ac & Opcodes.ACC_PUBLIC) == Opcodes.ACC_PUBLIC
+  def isSynthetic(n: FieldNode) = (n.access & Opcodes.ACC_SYNTHETIC) == Opcodes.ACC_SYNTHETIC
+  def isNestedClass(node: ClassNode) = node.name.indexOf('$') != -1 &&
+    node.fields.asScala.map(_.asInstanceOf[FieldNode]).exists(isSynthetic)
 
   def processForUsages(entry: JarEntry, in: InputStream, intfs: Map[String, Interface]): Option[Usage] = {
     val ifacenames = intfs.keySet
@@ -142,8 +183,7 @@ object ConversionsGenerator {
     val classNode = new ClassNode(Opcodes.ASM5)
     reader.accept(classNode, 0)
 
-    // don't know how to detect for non-static inner classes...  :(
-    if (isPublic(classNode.access) && classNode.name.startsWith("android") && !classNode.name.endsWith("$TabSpec")) {
+    if (isPublic(classNode.access) && !isNestedClass(classNode) && classNode.name.startsWith("android")) {
       val methods = classNode.methods.asScala collect { case m: MethodNode => m } filter { case method =>
         val params = Type.getArgumentTypes(method.desc)
         method.name.startsWith("set") && params.length == 1 && (params map (_.getClassName) exists ifacenames)
@@ -287,9 +327,12 @@ object ConversionsGenerator {
     fout.println("}")
     fout.close()
   }
-  def writeExtensions(usages: List[Usage], pkg: String, output: File): Unit = {
+  def writeExtensions(usages: List[Usage], pkg: String, output: File, deppkgs: List[String]): Unit = {
     val fout = new PrintWriter(new OutputStreamWriter(new FileOutputStream(output), "utf-8"))
     fout.println(s"package $pkg")
+    deppkgs.foreach { d =>
+      fout.println(s"import $d.conversions._")
+    }
     fout.println("import conversions._")
     fout.println("package object extensions {")
     usages foreach { usage =>
