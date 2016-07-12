@@ -1,28 +1,24 @@
 import java.io._
 import java.lang.reflect.Modifier
+import java.net.URLClassLoader
 import java.util.jar.{JarEntry, JarFile}
 
-import org.objectweb.asm.signature.{SignatureVisitor, SignatureReader}
-import org.objectweb.asm.{Type, Opcodes, ClassReader}
-import org.objectweb.asm.tree.{FieldNode, MethodNode, ClassNode}
-import sbt.File
-import sbt.FileInfo.exists
-import sbt.classpath.ClasspathUtilities
+import org.objectweb.asm.signature.{SignatureReader, SignatureVisitor}
+import org.objectweb.asm.tree.{ClassNode, FieldNode, MethodNode}
+import org.objectweb.asm.{ClassReader, Opcodes, Type}
 
-import collection.JavaConverters._
-import language.postfixOps
+import scala.collection.JavaConverters._
+import scala.language.postfixOps
 
-import sbt._
-
-object ConversionsGenerator {
+case class ParamType(tpe: String, isArray: Boolean = false, tpeArgs: List[String] = List.empty)
+object ParamType {
+  val blank = ParamType(null, false)
+}
+class ConversionsGenerator extends ConversionsInterface {
 
   case class Interface(name: String, method: String, args: List[ParamType], ret: ParamType, placeholders: List[String])
   case class InterfaceUsage(method: String, intf: Interface)
   case class Usage (name: String, methods: List[InterfaceUsage])
-  object ParamType {
-    val blank = ParamType(null, false)
-  }
-  case class ParamType(tpe: String, isArray: Boolean = false, tpeArgs: List[String] = List.empty)
 
   val TYPE_MAPPING = Map(
     "boolean" -> "Boolean",
@@ -38,24 +34,27 @@ object ConversionsGenerator {
   val ANNOTATION = Opcodes.ACC_ANNOTATION
   val PUBLIC_ABSTRACT = Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT
 
-  def apply(srcManaged: File, classpath: Seq[Attributed[File]], androidJar: File,
-            pkg: String = "com.hanhuy.android",
-            deps: List[File] = Nil,
-            deppkgs: List[String] = Nil): List[File] = {
+  override def apply(srcManaged: File,
+            classpath: java.util.List[File],
+            androidJar: File,
+            pkg: String,
+            deps: java.util.List[File],
+            deppkgs: java.util.List[String]): java.util.List[File] = {
     srcManaged.mkdirs()
-    val conversions = srcManaged / "conversions.scala"
-    val extensions = srcManaged / "extensions.scala"
-    val androidClasses = ClasspathUtilities.toLoader(classpath map (_.data))
+    val conversions = new File(srcManaged, "conversions.scala")
+    val extensions = new File(srcManaged, "extensions.scala")
+    val urls = classpath.asScala.map(_.toURI.toURL).toArray
+    val androidClasses = new URLClassLoader(urls, classOf[Int].getClassLoader)
     val publics = collectPublics(androidJar, androidClasses)
     val nesteds = collectNesteds(androidJar, androidClasses)
-    val allintfs = deps.foldLeft(List.empty[Interface]) { (ac, x) =>
+    val allintfs = deps.asScala.foldLeft(List.empty[Interface]) { (ac, x) =>
         ac ++ collectInterfaces(x, androidClasses, collectPublics(x, androidClasses), collectNesteds(x, androidClasses))
     }
     val interfaces = collectInterfaces(androidJar, androidClasses, publics, nesteds)
     val usages = collectUsages(androidJar, interfaces ++ allintfs)
     writeConversions(interfaces, pkg, conversions)
-    writeExtensions(usages, pkg, extensions, deppkgs)
-    List(conversions, extensions)
+    writeExtensions(usages, pkg, extensions, deppkgs.asScala.toList)
+    List(conversions, extensions).asJava
   }
 
   def collectPublics(androidJar: File, android: ClassLoader): Set[String] = {
